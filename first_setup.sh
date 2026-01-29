@@ -86,49 +86,73 @@ fi
 RESULTS+=("システム環境: OK")
 
 # ============================================================
-# STEP 2: tmux チェック・インストール
+# STEP 2: Zellij チェック・インストール
 # ============================================================
-log_step "STEP 2: tmux チェック"
+log_step "STEP 2: Zellij チェック"
 
-if command -v tmux &> /dev/null; then
-    TMUX_VERSION=$(tmux -V | awk '{print $2}')
-    log_success "tmux がインストール済みです (v$TMUX_VERSION)"
-    RESULTS+=("tmux: OK (v$TMUX_VERSION)")
+if command -v zellij &> /dev/null; then
+    ZELLIJ_VERSION=$(zellij --version 2>/dev/null | awk '{print $2}')
+    log_success "Zellij がインストール済みです (v$ZELLIJ_VERSION)"
+    RESULTS+=("Zellij: OK (v$ZELLIJ_VERSION)")
 else
-    log_warn "tmux がインストールされていません"
+    log_warn "Zellij がインストールされていません"
     echo ""
 
-    # Ubuntu/Debian系かチェック
-    if command -v apt-get &> /dev/null; then
-        read -p "  tmux をインストールしますか? [Y/n]: " REPLY
+    # インストール方法を表示
+    echo "  インストール方法:"
+    echo "    macOS:         brew install zellij"
+    echo "    Ubuntu/Debian: cargo install zellij"
+    echo "    Arch Linux:    pacman -S zellij"
+    echo "    その他:        https://zellij.dev/documentation/installation"
+    echo ""
+
+    # macOSの場合はbrewを使用
+    if command -v brew &> /dev/null; then
+        read -p "  Zellij をインストールしますか? [Y/n]: " REPLY
         REPLY=${REPLY:-Y}
         if [[ $REPLY =~ ^[Yy]$ ]]; then
-            log_info "tmux をインストール中..."
-            sudo apt-get update -qq
-            sudo apt-get install -y tmux
+            log_info "Zellij をインストール中..."
+            brew install zellij
 
-            if command -v tmux &> /dev/null; then
-                TMUX_VERSION=$(tmux -V | awk '{print $2}')
-                log_success "tmux インストール完了 (v$TMUX_VERSION)"
-                RESULTS+=("tmux: インストール完了 (v$TMUX_VERSION)")
+            if command -v zellij &> /dev/null; then
+                ZELLIJ_VERSION=$(zellij --version 2>/dev/null | awk '{print $2}')
+                log_success "Zellij インストール完了 (v$ZELLIJ_VERSION)"
+                RESULTS+=("Zellij: インストール完了 (v$ZELLIJ_VERSION)")
             else
-                log_error "tmux のインストールに失敗しました"
-                RESULTS+=("tmux: インストール失敗")
+                log_error "Zellij のインストールに失敗しました"
+                RESULTS+=("Zellij: インストール失敗")
                 HAS_ERROR=true
             fi
         else
-            log_warn "tmux のインストールをスキップしました"
-            RESULTS+=("tmux: 未インストール (スキップ)")
+            log_warn "Zellij のインストールをスキップしました"
+            RESULTS+=("Zellij: 未インストール (スキップ)")
+            HAS_ERROR=true
+        fi
+    # Ubuntu/Debian系でcargoがある場合
+    elif command -v cargo &> /dev/null; then
+        read -p "  Zellij をインストールしますか? [Y/n]: " REPLY
+        REPLY=${REPLY:-Y}
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            log_info "Zellij をインストール中 (cargo install)..."
+            cargo install zellij
+
+            if command -v zellij &> /dev/null; then
+                ZELLIJ_VERSION=$(zellij --version 2>/dev/null | awk '{print $2}')
+                log_success "Zellij インストール完了 (v$ZELLIJ_VERSION)"
+                RESULTS+=("Zellij: インストール完了 (v$ZELLIJ_VERSION)")
+            else
+                log_error "Zellij のインストールに失敗しました"
+                RESULTS+=("Zellij: インストール失敗")
+                HAS_ERROR=true
+            fi
+        else
+            log_warn "Zellij のインストールをスキップしました"
+            RESULTS+=("Zellij: 未インストール (スキップ)")
             HAS_ERROR=true
         fi
     else
-        log_error "apt-get が見つかりません。手動で tmux をインストールしてください"
-        echo ""
-        echo "  インストール方法:"
-        echo "    Ubuntu/Debian: sudo apt-get install tmux"
-        echo "    Fedora:        sudo dnf install tmux"
-        echo "    macOS:         brew install tmux"
-        RESULTS+=("tmux: 未インストール (手動インストール必要)")
+        log_error "brew または cargo が見つかりません。手動で Zellij をインストールしてください"
+        RESULTS+=("Zellij: 未インストール (手動インストール必要)")
         HAS_ERROR=true
     fi
 fi
@@ -367,6 +391,7 @@ log_step "STEP 8: 実行権限設定"
 SCRIPTS=(
     "setup.sh"
     "shutsujin_departure.sh"
+    "shutsujin_departure.fish"
     "first_setup.sh"
 )
 
@@ -419,11 +444,15 @@ echo "  │  📜 次のステップ                                            
 echo "  └──────────────────────────────────────────────────────────────┘"
 echo ""
 echo "  出陣（全エージェント起動）:"
-echo "     ./shutsujin_departure.sh"
+echo "     ./shutsujin_departure.fish"
 echo ""
 echo "  オプション:"
-echo "     ./shutsujin_departure.sh -s   # セットアップのみ（Claude手動起動）"
-echo "     ./shutsujin_departure.sh -t   # Windows Terminalタブ展開"
+echo "     ./shutsujin_departure.fish -s   # セットアップのみ（Claude手動起動）"
+echo "     ./shutsujin_departure.fish -t   # セッションを開く"
+echo ""
+echo "  セッション接続:"
+echo "     zellij attach shogun       # 将軍セッションに接続"
+echo "     zellij attach multiagent   # 家老・足軽セッションに接続"
 echo ""
 echo "  詳細は README.md を参照してください。"
 echo ""

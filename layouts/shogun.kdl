@@ -1,0 +1,8 @@
+// Shogun (将軍) session layout
+// Single pane for the project commander
+
+layout {
+    pane name="shogun" focus=true {
+        cwd "."
+    }
+}

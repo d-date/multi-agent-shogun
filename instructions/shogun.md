@@ -41,8 +41,8 @@ workflow:
     target: queue/shogun_to_karo.yaml
   - step: 3
     action: send_keys
-    target: multiagent:0.0
-    method: two_bash_calls
+    target: karo  # Zellij pane name
+    method: zellij_write_chars
   - step: 4
     action: wait_for_report
     note: "家老がdashboard.mdを更新する。将軍は更新しない。"
@@ -71,37 +71,24 @@ files:
   status: status/master_status.yaml
   command_queue: queue/shogun_to_karo.yaml
 
-# ペイン設定
+# ペイン設定（Zellij）
 panes:
-  karo: multiagent:0.0
+  session: multiagent
+  karo: karo  # Zellij pane name
 
-# send-keys ルール
+# send-keys ルール（Zellij）
 send_keys:
-  method: two_bash_calls
-  reason: "1回のBash呼び出しでEnterが正しく解釈されない"
+  method: zellij_write_chars
+  command_template: "zellij -s multiagent action write-chars '{message}\\n' --pane-name {target}"
   to_karo_allowed: true
   from_karo_allowed: false  # dashboard.md更新で報告
 
 # 家老の状態確認ルール
 karo_status_check:
-  method: tmux_capture_pane
-  command: "tmux capture-pane -t multiagent:0.0 -p | tail -20"
-  busy_indicators:
-    - "thinking"
-    - "Effecting…"
-    - "Boondoggling…"
-    - "Puzzling…"
-    - "Calculating…"
-    - "Fermenting…"
-    - "Crunching…"
-    - "Esc to interrupt"
-  idle_indicators:
-    - "❯ "  # プロンプトが表示されている
-    - "bypass permissions on"  # 入力待ち状態
-  when_to_check:
-    - "指示を送る前に家老が処理中でないか確認"
-    - "タスク完了を待つ時に進捗を確認"
-  note: "処理中の場合は完了を待つか、急ぎなら割り込み可"
+  method: yaml_status_file
+  file: "queue/reports/karo_status.yaml"
+  alternative: "dashboard.md の最終更新時刻で判断"
+  note: "YAMLステータスファイルで状態確認。スクリーンキャプチャは不使用。"
 
 # Memory MCP（知識グラフ記憶）
 memory:
@@ -186,29 +173,19 @@ date "+%Y-%m-%dT%H:%M:%S"
 
 **理由**: システムのローカルタイムを使用することで、ユーザーのタイムゾーンに依存した正しい時刻が取得できる。
 
-## 🔴 tmux send-keys の使用方法（超重要）
+## 🔴 Zellij でのメッセージ送信方法（超重要）
 
-### ❌ 絶対禁止パターン
+### ✅ 正しい方法
 
+**Zellij action write-chars を使用：**
 ```bash
-# ダメな例1: 1行で書く
-tmux send-keys -t multiagent:0.0 'メッセージ' Enter
-
-# ダメな例2: &&で繋ぐ
-tmux send-keys -t multiagent:0.0 'メッセージ' && tmux send-keys -t multiagent:0.0 Enter
+zellij -s multiagent action write-chars 'queue/shogun_to_karo.yaml に新しい指示がある。確認して実行せよ。\n' --pane-name karo
 ```
 
-### ✅ 正しい方法（2回に分ける）
-
-**【1回目】** メッセージを送る：
-```bash
-tmux send-keys -t multiagent:0.0 'queue/shogun_to_karo.yaml に新しい指示がある。確認して実行せよ。'
-```
-
-**【2回目】** Enterを送る：
-```bash
-tmux send-keys -t multiagent:0.0 Enter
-```
+**ポイント:**
+- `-s multiagent` でセッションを指定
+- `--pane-name karo` でターゲットペインを指定
+- メッセージの末尾に `\n` を含めてEnterキーを送信
 
 ## 指示の書き方
 
