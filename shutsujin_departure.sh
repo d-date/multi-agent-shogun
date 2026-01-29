@@ -36,16 +36,11 @@ log_war() {
 # オプション解析
 # ═══════════════════════════════════════════════════════════════════════════════
 SETUP_ONLY=false
-OPEN_TERMINAL=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         -s|--setup-only)
             SETUP_ONLY=true
-            shift
-            ;;
-        -t|--terminal)
-            OPEN_TERMINAL=true
             shift
             ;;
         -h|--help)
@@ -55,19 +50,16 @@ while [[ $# -gt 0 ]]; do
             echo "使用方法: ./shutsujin_departure.sh [オプション]"
             echo ""
             echo "オプション:"
-            echo "  -s, --setup-only  tmuxセッションのセットアップのみ（Claude起動なし）"
-            echo "  -t, --terminal    Windows Terminal で新しいタブを開く"
+            echo "  -s, --setup-only  Zellijセッションのセットアップのみ（Claude起動なし）"
             echo "  -h, --help        このヘルプを表示"
             echo ""
             echo "例:"
             echo "  ./shutsujin_departure.sh      # 全エージェント起動（通常の出陣）"
             echo "  ./shutsujin_departure.sh -s   # セットアップのみ（手動でClaude起動）"
-            echo "  ./shutsujin_departure.sh -t   # 全エージェント起動 + ターミナルタブ展開"
             echo ""
-            echo "エイリアス:"
-            echo "  csst  → cd /mnt/c/tools/multi-agent-shogun && ./shutsujin_departure.sh"
-            echo "  css   → tmux attach-session -t shogun"
-            echo "  csm   → tmux attach-session -t multiagent"
+            echo "セッション接続コマンド:"
+            echo "  zellij attach shogun       # 将軍セッションに接続"
+            echo "  zellij attach multiagent   # 家老・足軽セッションに接続"
             echo ""
             exit 0
             ;;
@@ -147,8 +139,8 @@ echo ""
 # STEP 1: 既存セッションクリーンアップ
 # ═══════════════════════════════════════════════════════════════════════════════
 log_info "🧹 既存の陣を撤収中..."
-tmux kill-session -t multiagent 2>/dev/null && log_info "  └─ multiagent陣、撤収完了" || log_info "  └─ multiagent陣は存在せず"
-tmux kill-session -t shogun 2>/dev/null && log_info "  └─ shogun本陣、撤収完了" || log_info "  └─ shogun本陣は存在せず"
+zellij delete-session multiagent --force 2>/dev/null && log_info "  └─ multiagent陣、撤収完了" || log_info "  └─ multiagent陣は存在せず"
+zellij delete-session shogun --force 2>/dev/null && log_info "  └─ shogun本陣、撤収完了" || log_info "  └─ shogun本陣は存在せず"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # STEP 2: 報告ファイルリセット
@@ -283,80 +275,58 @@ log_success "  └─ ダッシュボード初期化完了 (言語: $LANG_SETTIN
 echo ""
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# STEP 4: multiagentセッション作成（9ペイン：karo + ashigaru1-8）
+# STEP 4: Zellijセッション作成
 # ═══════════════════════════════════════════════════════════════════════════════
-log_war "⚔️ 家老・足軽の陣を構築中（9名配備）..."
+log_war "⚔️ Zellijセッションを構築中..."
 
-# 最初のペイン作成
-tmux new-session -d -s multiagent -n "agents"
+# shogunセッション作成（バックグラウンド）
+log_info "  └─ 将軍の本陣を構築中..."
+zellij --session shogun --layout layouts/shogun.kdl &
+SHOGUN_PID=$!
+sleep 2
 
-# 3x3グリッド作成（合計9ペイン）
-# 最初に3列に分割
-tmux split-window -h -t "multiagent:0"
-tmux split-window -h -t "multiagent:0"
+# multiagentセッション作成（バックグラウンド）
+log_info "  └─ 家老・足軽の陣を構築中（9名配備）..."
+zellij --session multiagent --layout layouts/multiagent.kdl &
+MULTIAGENT_PID=$!
+sleep 2
 
-# 各列を3行に分割
-tmux select-pane -t "multiagent:0.0"
-tmux split-window -v
-tmux split-window -v
-
-tmux select-pane -t "multiagent:0.3"
-tmux split-window -v
-tmux split-window -v
-
-tmux select-pane -t "multiagent:0.6"
-tmux split-window -v
-tmux split-window -v
-
-# ペインタイトル設定（0: karo, 1-8: ashigaru1-8）
-PANE_TITLES=("karo" "ashigaru1" "ashigaru2" "ashigaru3" "ashigaru4" "ashigaru5" "ashigaru6" "ashigaru7" "ashigaru8")
-PANE_COLORS=("1;31" "1;34" "1;34" "1;34" "1;34" "1;34" "1;34" "1;34" "1;34")  # karo: 赤, ashigaru: 青
-
-for i in {0..8}; do
-    tmux select-pane -t "multiagent:0.$i" -T "${PANE_TITLES[$i]}"
-    tmux send-keys -t "multiagent:0.$i" "cd $(pwd) && export PS1='(\[\033[${PANE_COLORS[$i]}m\]${PANE_TITLES[$i]}\[\033[0m\]) \[\033[1;32m\]\w\[\033[0m\]\$ ' && clear" Enter
-done
-
-log_success "  └─ 家老・足軽の陣、構築完了"
+log_success "✅ Zellijセッション構築完了"
 echo ""
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# STEP 5: shogunセッション作成（1ペイン）
-# ═══════════════════════════════════════════════════════════════════════════════
-log_war "👑 将軍の本陣を構築中..."
-tmux new-session -d -s shogun
-tmux send-keys -t shogun "cd $(pwd) && export PS1='(\[\033[1;35m\]将軍\[\033[0m\]) \[\033[1;32m\]\w\[\033[0m\]\$ ' && clear" Enter
-tmux select-pane -t shogun:0.0 -P 'bg=#002b36'  # 将軍の Solarized Dark
-
-log_success "  └─ 将軍の本陣、構築完了"
-echo ""
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# STEP 6: Claude Code 起動（--setup-only でスキップ）
+# STEP 5: Claude Code 起動（--setup-only でスキップ）
 # ═══════════════════════════════════════════════════════════════════════════════
 if [ "$SETUP_ONLY" = false ]; then
     log_war "👑 全軍に Claude Code を召喚中..."
 
-    # 将軍
-    tmux send-keys -t shogun "MAX_THINKING_TOKENS=0 claude --model opus --dangerously-skip-permissions"
-    tmux send-keys -t shogun Enter
+    # 将軍（Opusモデル、思考無効）
+    zellij --session shogun action write-chars "MAX_THINKING_TOKENS=0 claude --model opus --dangerously-skip-permissions"
+    sleep 0.3
+    zellij --session shogun action write 10  # Enter key
     log_info "  └─ 将軍、召喚完了"
 
-    # 少し待機（安定のため）
     sleep 1
 
-    # 家老 + 足軽（9ペイン）
-    for i in {0..8}; do
-        tmux send-keys -t "multiagent:0.$i" "claude --dangerously-skip-permissions"
-        tmux send-keys -t "multiagent:0.$i" Enter
+    # 家老（karoペイン）
+    zellij --session multiagent action write-chars "claude --dangerously-skip-permissions" --pane-name karo
+    sleep 0.3
+    zellij --session multiagent action write 10 --pane-name karo
+    log_info "  └─ 家老、召喚完了"
+
+    # 足軽（ashigaru1-8）
+    for i in {1..8}; do
+        zellij --session multiagent action write-chars "claude --dangerously-skip-permissions" --pane-name "ashigaru${i}"
+        sleep 0.2
+        zellij --session multiagent action write 10 --pane-name "ashigaru${i}"
     done
-    log_info "  └─ 家老・足軽、召喚完了"
+    log_info "  └─ 足軽8名、召喚完了"
 
     log_success "✅ 全軍 Claude Code 起動完了"
     echo ""
 
     # ═══════════════════════════════════════════════════════════════════════════
-    # STEP 6.5: 各エージェントに指示書を読み込ませる
+    # STEP 5.5: 各エージェントに指示書を読み込ませる
     # ═══════════════════════════════════════════════════════════════════════════
     log_war "📜 各エージェントに指示書を読み込ませ中..."
     echo ""
@@ -431,24 +401,24 @@ NINJA_EOF
 
     # 将軍に指示書を読み込ませる
     log_info "  └─ 将軍に指示書を伝達中..."
-    tmux send-keys -t shogun "instructions/shogun.md を読んで役割を理解せよ。"
+    zellij --session shogun action write-chars "instructions/shogun.md を読んで役割を理解せよ。"
     sleep 0.5
-    tmux send-keys -t shogun Enter
+    zellij --session shogun action write 10
 
     # 家老に指示書を読み込ませる
     sleep 2
     log_info "  └─ 家老に指示書を伝達中..."
-    tmux send-keys -t "multiagent:0.0" "instructions/karo.md を読んで役割を理解せよ。"
+    zellij --session multiagent action write-chars "instructions/karo.md を読んで役割を理解せよ。" --pane-name karo
     sleep 0.5
-    tmux send-keys -t "multiagent:0.0" Enter
+    zellij --session multiagent action write 10 --pane-name karo
 
     # 足軽に指示書を読み込ませる（1-8）
     sleep 2
     log_info "  └─ 足軽に指示書を伝達中..."
     for i in {1..8}; do
-        tmux send-keys -t "multiagent:0.$i" "instructions/ashigaru.md を読んで役割を理解せよ。汝は足軽${i}号である。"
+        zellij --session multiagent action write-chars "instructions/ashigaru.md を読んで役割を理解せよ。汝は足軽${i}号である。" --pane-name "ashigaru${i}"
         sleep 0.3
-        tmux send-keys -t "multiagent:0.$i" Enter
+        zellij --session multiagent action write 10 --pane-name "ashigaru${i}"
         sleep 0.5
     done
 
@@ -457,14 +427,14 @@ NINJA_EOF
 fi
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# STEP 7: 環境確認・完了メッセージ
+# STEP 6: 環境確認・完了メッセージ
 # ═══════════════════════════════════════════════════════════════════════════════
 log_info "🔍 陣容を確認中..."
 echo ""
 echo "  ┌──────────────────────────────────────────────────────────┐"
-echo "  │  📺 Tmux陣容 (Sessions)                                  │"
+echo "  │  📺 Zellijセッション (Sessions)                          │"
 echo "  └──────────────────────────────────────────────────────────┘"
-tmux list-sessions | sed 's/^/     /'
+zellij list-sessions 2>/dev/null | sed 's/^/     /' || echo "     (セッション確認にはzellij list-sessionsを使用)"
 echo ""
 echo "  ┌──────────────────────────────────────────────────────────┐"
 echo "  │  📋 布陣図 (Formation)                                   │"
@@ -472,7 +442,7 @@ echo "  └───────────────────────
 echo ""
 echo "     【shogunセッション】将軍の本陣"
 echo "     ┌─────────────────────────────┐"
-echo "     │  Pane 0: 将軍 (SHOGUN)      │  ← 総大将・プロジェクト統括"
+echo "     │  Pane: shogun (将軍)        │  ← 総大将・プロジェクト統括"
 echo "     └─────────────────────────────┘"
 echo ""
 echo "     【multiagentセッション】家老・足軽の陣（3x3 = 9ペイン）"
@@ -500,12 +470,17 @@ if [ "$SETUP_ONLY" = true ]; then
     echo "  手動でClaude Codeを起動するには:"
     echo "  ┌──────────────────────────────────────────────────────────┐"
     echo "  │  # 将軍を召喚                                            │"
-    echo "  │  tmux send-keys -t shogun 'claude --dangerously-skip-permissions' Enter │"
+    echo "  │  zellij --session shogun action write-chars \\            │"
+    echo "  │    'claude --dangerously-skip-permissions'               │"
+    echo "  │  zellij --session shogun action write 10                 │"
     echo "  │                                                          │"
     echo "  │  # 家老・足軽を一斉召喚                                   │"
-    echo "  │  for i in {0..8}; do \\                                   │"
-    echo "  │    tmux send-keys -t multiagent:0.\$i \\                   │"
-    echo "  │      'claude --dangerously-skip-permissions' Enter       │"
+    echo "  │  for pane in karo ashigaru{1..8}; do                     │"
+    echo "  │    zellij --session multiagent action write-chars \\      │"
+    echo "  │      'claude --dangerously-skip-permissions' \\           │"
+    echo "  │      --pane-name \$pane                                   │"
+    echo "  │    zellij --session multiagent action write 10 \\         │"
+    echo "  │      --pane-name \$pane                                   │"
     echo "  │  done                                                    │"
     echo "  └──────────────────────────────────────────────────────────┘"
     echo ""
@@ -514,10 +489,10 @@ fi
 echo "  次のステップ:"
 echo "  ┌──────────────────────────────────────────────────────────┐"
 echo "  │  将軍の本陣にアタッチして命令を開始:                      │"
-echo "  │     tmux attach-session -t shogun   (または: css)        │"
+echo "  │     zellij attach shogun                                 │"
 echo "  │                                                          │"
 echo "  │  家老・足軽の陣を確認する:                                │"
-echo "  │     tmux attach-session -t multiagent   (または: csm)    │"
+echo "  │     zellij attach multiagent                             │"
 echo "  │                                                          │"
 echo "  │  ※ 各エージェントは指示書を読み込み済み。                 │"
 echo "  │    すぐに命令を開始できます。                             │"
@@ -527,19 +502,3 @@ echo "  ════════════════════════
 echo "   天下布武！勝利を掴め！ (Tenka Fubu! Seize victory!)"
 echo "  ════════════════════════════════════════════════════════════"
 echo ""
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# STEP 8: Windows Terminal でタブを開く（-t オプション時のみ）
-# ═══════════════════════════════════════════════════════════════════════════════
-if [ "$OPEN_TERMINAL" = true ]; then
-    log_info "📺 Windows Terminal でタブを展開中..."
-
-    # Windows Terminal が利用可能か確認
-    if command -v wt.exe &> /dev/null; then
-        wt.exe -w 0 new-tab wsl.exe -e bash -c "tmux attach-session -t shogun" \; new-tab wsl.exe -e bash -c "tmux attach-session -t multiagent"
-        log_success "  └─ ターミナルタブ展開完了"
-    else
-        log_info "  └─ wt.exe が見つかりません。手動でアタッチしてください。"
-    fi
-    echo ""
-fi

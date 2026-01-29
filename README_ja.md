@@ -8,7 +8,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Claude Code](https://img.shields.io/badge/Claude-Code-blueviolet)](https://claude.ai)
-[![tmux](https://img.shields.io/badge/tmux-required-green)](https://github.com/tmux/tmux)
+[![Zellij](https://img.shields.io/badge/Zellij-required-green)](https://zellij.dev)
 
 [English](README.md) | [日本語](README_ja.md)
 
@@ -33,7 +33,7 @@
     ┌─────────────┐
     │   SHOGUN    │  ← 命令を受け取り、即座に委譲
     └──────┬──────┘
-           │ YAMLファイル + tmux
+           │ YAMLファイル + Zellij
     ┌──────▼──────┐
     │    KARO     │  ← タスクをワーカーに分配
     └──────┬──────┘
@@ -139,7 +139,7 @@ cd ~/multi-agent-shogun
 
 ### WSL2について
 
-**WSL2（Windows Subsystem for Linux）** は、Windows内でLinuxを実行できる機能です。このシステムは `tmux`（Linuxツール）を使って複数のAIエージェントを管理するため、WindowsではWSL2が必要です。
+**WSL2（Windows Subsystem for Linux）** は、Windows内でLinuxを実行できる機能です。このシステムは `Zellij`（Linuxターミナルマルチプレクサ）を使って複数のAIエージェントを管理するため、WindowsではWSL2が必要です。
 
 ### WSL2がまだない場合
 
@@ -165,17 +165,17 @@ wsl --install
 | スクリプト | 用途 | 実行タイミング |
 |-----------|------|---------------|
 | `install.bat` | Windows: 初回セットアップ（WSL経由でfirst_setup.shを実行） | 初回のみ |
-| `first_setup.sh` | tmux、Node.js、Claude Code CLI をインストール | 初回のみ |
-| `shutsujin_departure.sh` | tmuxセッション作成 + Claude Code起動 + 指示書読み込み | 毎日 |
+| `first_setup.sh` | Zellij、Node.js、Claude Code CLI をインストール | 初回のみ |
+| `shutsujin_departure.sh` | Zellijセッション作成 + Claude Code起動 + 指示書読み込み | 毎日 |
 
 ### `install.bat` が自動で行うこと：
 - ✅ WSL2がインストールされているかチェック
 - ✅ Ubuntuを開いて `first_setup.sh` を実行
-- ✅ tmux、Node.js、Claude Code CLI をインストール
+- ✅ Zellij、Node.js、Claude Code CLI をインストール
 - ✅ 必要なディレクトリを作成
 
 ### `shutsujin_departure.sh` が行うこと：
-- ✅ tmuxセッションを作成（shogun + multiagent）
+- ✅ Zellijセッションを作成（shogun + multiagent）
 - ✅ 全10エージェントでClaude Codeを起動
 - ✅ 各エージェントに指示書を自動読み込み
 - ✅ キューファイルをリセットして新しい状態に
@@ -194,7 +194,7 @@ wsl --install
 | 要件 | インストール方法 | 備考 |
 |------|-----------------|------|
 | WSL2 + Ubuntu | PowerShellで `wsl --install` | Windowsのみ |
-| tmux | `sudo apt install tmux` | ターミナルマルチプレクサ |
+| Zellij | `cargo install zellij` またはパッケージマネージャ | ターミナルマルチプレクサ |
 | Node.js v20+ | `nvm install 20` | Claude Code CLIに必要 |
 | Claude Code CLI | `npm install -g @anthropic-ai/claude-code` | Anthropic公式CLI |
 
@@ -212,7 +212,7 @@ wsl --install
 | 📋 家老（Karo） | 管理者 - タスクを分配 | 1 |
 | ⚔️ 足軽（Ashigaru） | ワーカー - 並列でタスク実行 | 8 |
 
-tmuxセッションが作成されます：
+Zellijセッションが作成されます：
 - `shogun` - ここに接続してコマンドを出す
 - `multiagent` - ワーカーがバックグラウンドで稼働
 
@@ -227,7 +227,7 @@ tmuxセッションが作成されます：
 新しいターミナルを開いて将軍に接続：
 
 ```bash
-tmux attach-session -t shogun
+zellij attach shogun
 ```
 
 ### Step 2: 最初の命令を出す
@@ -300,7 +300,7 @@ AIがあなたの好みを記憶します：
 
 ### 📡 4. イベント駆動（ポーリングなし）
 
-エージェントはYAMLファイルで通信し、tmux send-keysで互いを起こします。
+エージェントはYAMLファイルで通信し、Zellij actionで互いを起こします。
 **ポーリングループでAPIコールを浪費しません。**
 
 ### 📸 5. スクリーンショット連携
@@ -379,7 +379,7 @@ screenshot:
 3. **障害分離**: 1体の足軽が失敗しても他に影響しない
 4. **人間への報告一元化**: 将軍だけが人間とやり取りするため、情報が整理される
 
-### なぜ YAML + send-keys なのか
+### なぜ YAML + Zellij action なのか
 
 1. **ポーリング不要**: イベント駆動でAPIコストを削減
 2. **状態の永続化**: YAMLファイルでタスク状態を追跡可能
@@ -529,7 +529,7 @@ language: en   # 日本語 + 英訳併記
 │      │                                                              │
 │      └──▶ first_setup.sh (WSL経由)                                  │
 │                │                                                    │
-│                ├── tmuxのチェック/インストール                        │
+│                ├── Zellijのチェック/インストール                      │
 │                ├── Node.js v20+のチェック/インストール (nvm経由)       │
 │                └── Claude Code CLIのチェック/インストール             │
 │                                                                     │
@@ -539,7 +539,7 @@ language: en   # 日本語 + 英訳併記
 │                                                                     │
 │  shutsujin_departure.sh                                             │
 │      │                                                              │
-│      ├──▶ tmuxセッションを作成                                       │
+│      ├──▶ Zellijセッションを作成                                     │
 │      │         • "shogun"セッション（1ペイン）                        │
 │      │         • "multiagent"セッション（9ペイン、3x3グリッド）        │
 │      │                                                              │
@@ -556,16 +556,12 @@ language: en   # 日本語 + 英訳併記
 <summary><b>shutsujin_departure.sh オプション</b>（クリックで展開）</summary>
 
 ```bash
-# デフォルト: フル起動（tmuxセッション + Claude Code起動）
+# デフォルト: フル起動（Zellijセッション + Claude Code起動）
 ./shutsujin_departure.sh
 
 # セッションセットアップのみ（Claude Code起動なし）
 ./shutsujin_departure.sh -s
 ./shutsujin_departure.sh --setup-only
-
-# フル起動 + Windows Terminalタブを開く
-./shutsujin_departure.sh -t
-./shutsujin_departure.sh --terminal
 
 # ヘルプを表示
 ./shutsujin_departure.sh -h
@@ -580,7 +576,7 @@ language: en   # 日本語 + 英訳併記
 **通常の毎日の使用：**
 ```bash
 ./shutsujin_departure.sh          # 全て起動
-tmux attach-session -t shogun     # 接続してコマンドを出す
+zellij attach shogun              # 接続してコマンドを出す
 ```
 
 **デバッグモード（手動制御）：**
@@ -588,15 +584,15 @@ tmux attach-session -t shogun     # 接続してコマンドを出す
 ./shutsujin_departure.sh -s       # セッションのみ作成
 
 # 特定のエージェントでClaude Codeを手動起動
-tmux send-keys -t shogun:0 'claude --dangerously-skip-permissions' Enter
-tmux send-keys -t multiagent:0.0 'claude --dangerously-skip-permissions' Enter
+zellij --session shogun action write-chars 'claude --dangerously-skip-permissions'
+zellij --session shogun action write 10
 ```
 
 **クラッシュ後の再起動：**
 ```bash
 # 既存セッションを終了
-tmux kill-session -t shogun
-tmux kill-session -t multiagent
+zellij delete-session shogun --force
+zellij delete-session multiagent --force
 
 # 新しく起動
 ./shutsujin_departure.sh
@@ -611,8 +607,8 @@ tmux kill-session -t multiagent
 
 ```bash
 alias shogun='cd /mnt/c/tools/multi-agent-shogun && ./shutsujin_departure.sh'
-alias css='tmux attach-session -t shogun'
-alias csm='tmux attach-session -t multiagent'
+alias css='zellij attach shogun'
+alias csm='zellij attach multiagent'
 ```
 
 </details>
@@ -632,6 +628,10 @@ multi-agent-shogun/
 ├── first_setup.sh            # Ubuntu/Mac: 初回セットアップ
 ├── shutsujin_departure.sh    # 毎日の起動（指示書自動読み込み）
 │  └────────────────────────────────────────────────────────────┘
+│
+├── layouts/                  # Zellijレイアウトファイル
+│   ├── shogun.kdl            # 将軍セッションレイアウト
+│   └── multiagent.kdl        # マルチエージェントセッションレイアウト（3x3グリッド）
 │
 ├── instructions/             # エージェント指示書
 │   ├── shogun.md             # 将軍の指示書
@@ -689,24 +689,26 @@ claude --dangerously-skip-permissions --system-prompt "..."
 
 ワーカーのペインを確認：
 ```bash
-tmux attach-session -t multiagent
-# Ctrl+B の後に数字でペインを切り替え
+zellij attach multiagent
+# Ctrl+P の後 N でペインを切り替え、またはペインをクリック
 ```
 
 </details>
 
 ---
 
-## 📚 tmux クイックリファレンス
+## 📚 Zellij クイックリファレンス
 
 | コマンド | 説明 |
 |----------|------|
-| `tmux attach -t shogun` | 将軍に接続 |
-| `tmux attach -t multiagent` | ワーカーに接続 |
-| `Ctrl+B` の後 `0-8` | ペイン間を切り替え |
-| `Ctrl+B` の後 `d` | デタッチ（実行継続） |
-| `tmux kill-session -t shogun` | 将軍セッションを停止 |
-| `tmux kill-session -t multiagent` | ワーカーセッションを停止 |
+| `zellij attach shogun` | 将軍に接続 |
+| `zellij attach multiagent` | ワーカーに接続 |
+| `Ctrl+P` の後 `N` | 次のペインに切り替え |
+| `Ctrl+P` の後 `P` | 前のペインに切り替え |
+| `Ctrl+O` の後 `D` | デタッチ（実行継続） |
+| `zellij delete-session shogun --force` | 将軍セッションを停止 |
+| `zellij delete-session multiagent --force` | ワーカーセッションを停止 |
+| `zellij list-sessions` | 全アクティブセッションを一覧 |
 
 ---
 

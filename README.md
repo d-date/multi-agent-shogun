@@ -8,7 +8,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Claude Code](https://img.shields.io/badge/Claude-Code-blueviolet)](https://claude.ai)
-[![tmux](https://img.shields.io/badge/tmux-required-green)](https://github.com/tmux/tmux)
+[![Zellij](https://img.shields.io/badge/Zellij-required-green)](https://zellij.dev)
 
 [English](README.md) | [Japanese / 日本語](README_ja.md)
 
@@ -33,7 +33,7 @@
       ┌─────────────┐
       │   SHOGUN    │  ← Receives your command, delegates immediately
       └──────┬──────┘
-             │ YAML files + tmux
+             │ YAML files + Zellij
       ┌──────▼──────┐
       │    KARO     │  ← Distributes tasks to workers
       └──────┬──────┘
@@ -139,7 +139,7 @@ cd ~/multi-agent-shogun
 
 ### About WSL2
 
-**WSL2 (Windows Subsystem for Linux)** lets you run Linux inside Windows. This system uses `tmux` (a Linux tool) to manage multiple AI agents, so WSL2 is required on Windows.
+**WSL2 (Windows Subsystem for Linux)** lets you run Linux inside Windows. This system uses `Zellij` (a Linux terminal multiplexer) to manage multiple AI agents, so WSL2 is required on Windows.
 
 ### Don't have WSL2 yet?
 
@@ -165,17 +165,17 @@ Then restart your computer and run `install.bat` again.
 | Script | Purpose | When to Run |
 |--------|---------|-------------|
 | `install.bat` | Windows: First-time setup (runs first_setup.sh via WSL) | First time only |
-| `first_setup.sh` | Installs tmux, Node.js, Claude Code CLI | First time only |
-| `shutsujin_departure.sh` | Creates tmux sessions + starts Claude Code + loads instructions | Every day |
+| `first_setup.sh` | Installs Zellij, Node.js, Claude Code CLI | First time only |
+| `shutsujin_departure.sh` | Creates Zellij sessions + starts Claude Code + loads instructions | Every day |
 
 ### What `install.bat` does automatically:
 - ✅ Checks if WSL2 is installed
 - ✅ Opens Ubuntu and runs `first_setup.sh`
-- ✅ Installs tmux, Node.js, and Claude Code CLI
+- ✅ Installs Zellij, Node.js, and Claude Code CLI
 - ✅ Creates necessary directories
 
 ### What `shutsujin_departure.sh` does:
-- ✅ Creates tmux sessions (shogun + multiagent)
+- ✅ Creates Zellij sessions (shogun + multiagent)
 - ✅ Launches Claude Code on all 10 agents
 - ✅ Automatically loads instruction files for each agent
 - ✅ Resets queue files for a fresh start
@@ -194,7 +194,7 @@ If you prefer to install dependencies manually:
 | Requirement | How to install | Notes |
 |-------------|----------------|-------|
 | WSL2 + Ubuntu | `wsl --install` in PowerShell | Windows only |
-| tmux | `sudo apt install tmux` | Terminal multiplexer |
+| Zellij | `cargo install zellij` or package manager | Terminal multiplexer |
 | Node.js v20+ | `nvm install 20` | Required for Claude Code CLI |
 | Claude Code CLI | `npm install -g @anthropic-ai/claude-code` | Anthropic's official CLI |
 
@@ -212,7 +212,7 @@ After running either option, **10 AI agents** will start automatically:
 | 📋 Karo | Manager - distributes tasks | 1 |
 | ⚔️ Ashigaru | Workers - execute tasks in parallel | 8 |
 
-You'll see tmux sessions created:
+You'll see Zellij sessions created:
 - `shogun` - Connect here to give commands
 - `multiagent` - Workers running in background
 
@@ -227,7 +227,7 @@ After running `shutsujin_departure.sh`, all agents automatically load their inst
 Open a new terminal and connect to the Shogun:
 
 ```bash
-tmux attach-session -t shogun
+zellij attach shogun
 ```
 
 ### Step 2: Give Your First Order
@@ -300,7 +300,7 @@ Session 2: AI reads memory at startup
 
 ### 📡 4. Event-Driven (No Polling)
 
-Agents communicate via YAML files and wake each other with tmux send-keys.
+Agents communicate via YAML files and wake each other with Zellij action.
 **No API calls are wasted on polling loops.**
 
 ### 📸 5. Screenshot Support
@@ -388,10 +388,10 @@ The Shogun → Karo → Ashigaru hierarchy exists for:
 2. **Parallel Execution**: Karo distributes to multiple Ashigaru simultaneously
 3. **Separation of Concerns**: Shogun decides "what", Karo decides "who"
 
-### Why YAML + send-keys?
+### Why YAML + Zellij action?
 
 - **YAML files**: Structured communication that survives agent restarts
-- **send-keys**: Event-driven wakeups (no polling = no wasted API calls)
+- **Zellij action**: Event-driven wakeups (no polling = no wasted API calls)
 - **No direct calls**: Agents can't interrupt each other or your input
 
 ### Why Only Karo Updates Dashboard?
@@ -523,7 +523,7 @@ language: en   # Japanese + English translation
 │      │                                                              │
 │      └──▶ first_setup.sh (via WSL)                                  │
 │                │                                                    │
-│                ├── Check/Install tmux                               │
+│                ├── Check/Install Zellij                             │
 │                ├── Check/Install Node.js v20+ (via nvm)             │
 │                └── Check/Install Claude Code CLI                    │
 │                                                                     │
@@ -533,7 +533,7 @@ language: en   # Japanese + English translation
 │                                                                     │
 │  shutsujin_departure.sh                                             │
 │      │                                                              │
-│      ├──▶ Create tmux sessions                                      │
+│      ├──▶ Create Zellij sessions                                    │
 │      │         • "shogun" session (1 pane)                          │
 │      │         • "multiagent" session (9 panes, 3x3 grid)           │
 │      │                                                              │
@@ -550,16 +550,12 @@ language: en   # Japanese + English translation
 <summary><b>shutsujin_departure.sh Options</b> (Click to expand)</summary>
 
 ```bash
-# Default: Full startup (tmux sessions + Claude Code launch)
+# Default: Full startup (Zellij sessions + Claude Code launch)
 ./shutsujin_departure.sh
 
 # Session setup only (without launching Claude Code)
 ./shutsujin_departure.sh -s
 ./shutsujin_departure.sh --setup-only
-
-# Full startup + open Windows Terminal tabs
-./shutsujin_departure.sh -t
-./shutsujin_departure.sh --terminal
 
 # Show help
 ./shutsujin_departure.sh -h
@@ -574,7 +570,7 @@ language: en   # Japanese + English translation
 **Normal Daily Usage:**
 ```bash
 ./shutsujin_departure.sh          # Start everything
-tmux attach-session -t shogun     # Connect to give commands
+zellij attach shogun              # Connect to give commands
 ```
 
 **Debug Mode (manual control):**
@@ -582,15 +578,15 @@ tmux attach-session -t shogun     # Connect to give commands
 ./shutsujin_departure.sh -s       # Create sessions only
 
 # Manually start Claude Code on specific agents
-tmux send-keys -t shogun:0 'claude --dangerously-skip-permissions' Enter
-tmux send-keys -t multiagent:0.0 'claude --dangerously-skip-permissions' Enter
+zellij --session shogun action write-chars 'claude --dangerously-skip-permissions'
+zellij --session shogun action write 10
 ```
 
 **Restart After Crash:**
 ```bash
 # Kill existing sessions
-tmux kill-session -t shogun
-tmux kill-session -t multiagent
+zellij delete-session shogun --force
+zellij delete-session multiagent --force
 
 # Start fresh
 ./shutsujin_departure.sh
@@ -613,6 +609,10 @@ multi-agent-shogun/
 ├── first_setup.sh            # Ubuntu/Mac: First-time setup
 ├── shutsujin_departure.sh    # Daily startup (auto-loads instructions)
 │  └────────────────────────────────────────────────────┘
+│
+├── layouts/                  # Zellij layout files
+│   ├── shogun.kdl            # Shogun session layout
+│   └── multiagent.kdl        # Multiagent session layout (3x3 grid)
 │
 ├── instructions/             # Agent instruction files
 │   ├── shogun.md             # Commander instructions
@@ -670,24 +670,26 @@ claude --dangerously-skip-permissions --system-prompt "..."
 
 Check the worker's pane:
 ```bash
-tmux attach-session -t multiagent
-# Use Ctrl+B then number to switch panes
+zellij attach multiagent
+# Use Ctrl+P then N to switch panes, or click on the pane
 ```
 
 </details>
 
 ---
 
-## 📚 tmux Quick Reference
+## 📚 Zellij Quick Reference
 
 | Command | Description |
 |---------|-------------|
-| `tmux attach -t shogun` | Connect to Shogun |
-| `tmux attach -t multiagent` | Connect to workers |
-| `Ctrl+B` then `0-8` | Switch between panes |
-| `Ctrl+B` then `d` | Detach (leave running) |
-| `tmux kill-session -t shogun` | Stop Shogun session |
-| `tmux kill-session -t multiagent` | Stop worker sessions |
+| `zellij attach shogun` | Connect to Shogun |
+| `zellij attach multiagent` | Connect to workers |
+| `Ctrl+P` then `N` | Switch to next pane |
+| `Ctrl+P` then `P` | Switch to previous pane |
+| `Ctrl+O` then `D` | Detach (leave running) |
+| `zellij delete-session shogun --force` | Stop Shogun session |
+| `zellij delete-session multiagent --force` | Stop worker sessions |
+| `zellij list-sessions` | List all active sessions |
 
 ---
 
