@@ -53,8 +53,8 @@ workflow:
     note: "各足軽専用ファイル"
   - step: 6
     action: send_keys
-    target: "multiagent:0.{N}"
-    method: two_bash_calls
+    target: "ashigaru{N}"  # Zellij pane name
+    method: zellij_write_chars
   - step: 7
     action: stop
     note: "処理を終了し、プロンプト待ちになる"
@@ -80,44 +80,43 @@ files:
   status: status/master_status.yaml
   dashboard: dashboard.md
 
-# ペイン設定
+# ペイン設定（Zellij）
 panes:
-  shogun: shogun
-  self: multiagent:0.0
+  session: multiagent
+  shogun_session: shogun
+  self: karo  # Zellij pane name
   ashigaru:
-    - { id: 1, pane: "multiagent:0.1" }
-    - { id: 2, pane: "multiagent:0.2" }
-    - { id: 3, pane: "multiagent:0.3" }
-    - { id: 4, pane: "multiagent:0.4" }
-    - { id: 5, pane: "multiagent:0.5" }
-    - { id: 6, pane: "multiagent:0.6" }
-    - { id: 7, pane: "multiagent:0.7" }
-    - { id: 8, pane: "multiagent:0.8" }
+    - { id: 1, pane: "ashigaru1" }
+    - { id: 2, pane: "ashigaru2" }
+    - { id: 3, pane: "ashigaru3" }
+    - { id: 4, pane: "ashigaru4" }
+    - { id: 5, pane: "ashigaru5" }
+    - { id: 6, pane: "ashigaru6" }
+    - { id: 7, pane: "ashigaru7" }
+    - { id: 8, pane: "ashigaru8" }
 
-# send-keys ルール
+# send-keys ルール（Zellij）
 send_keys:
-  method: two_bash_calls
+  method: zellij_write_chars
+  command_template: "zellij -s multiagent action write-chars '{message}\\n' --pane-name {target}"
   to_ashigaru_allowed: true
   to_shogun_allowed: false  # dashboard.md更新で報告
   reason_shogun_disabled: "殿の入力中に割り込み防止"
 
 # 足軽の状態確認ルール
 ashigaru_status_check:
-  method: tmux_capture_pane
-  command: "tmux capture-pane -t multiagent:0.{N} -p | tail -20"
-  busy_indicators:
-    - "thinking"
-    - "Esc to interrupt"
-    - "Effecting…"
-    - "Boondoggling…"
-    - "Puzzling…"
-  idle_indicators:
-    - "❯ "  # プロンプト表示 = 入力待ち
-    - "bypass permissions on"
+  method: yaml_status_file
+  file_pattern: "queue/reports/ashigaru{N}_report.yaml"
+  check_field: "status"
+  busy_values:
+    - "in_progress"
+  idle_values:
+    - "idle"
+    - "done"
   when_to_check:
     - "タスクを割り当てる前に足軽が空いているか確認"
     - "報告待ちの際に進捗を確認"
-  note: "処理中の足軽には新規タスクを割り当てない"
+  note: "処理中の足軽には新規タスクを割り当てない。YAMLステータスファイルで判断。"
 
 # 並列化ルール
 parallelization:
@@ -178,25 +177,19 @@ date "+%Y-%m-%dT%H:%M:%S"
 
 **理由**: システムのローカルタイムを使用することで、ユーザーのタイムゾーンに依存した正しい時刻が取得できる。
 
-## 🔴 tmux send-keys の使用方法（超重要）
+## 🔴 Zellij でのメッセージ送信方法（超重要）
 
-### ❌ 絶対禁止パターン
+### ✅ 正しい方法
 
+**Zellij action write-chars を使用：**
 ```bash
-tmux send-keys -t multiagent:0.1 'メッセージ' Enter  # ダメ
+zellij -s multiagent action write-chars 'queue/tasks/ashigaru1.yaml に任務がある。確認して実行せよ。\n' --pane-name ashigaru1
 ```
 
-### ✅ 正しい方法（2回に分ける）
-
-**【1回目】**
-```bash
-tmux send-keys -t multiagent:0.{N} 'queue/tasks/ashigaru{N}.yaml に任務がある。確認して実行せよ。'
-```
-
-**【2回目】**
-```bash
-tmux send-keys -t multiagent:0.{N} Enter
-```
+**ポイント:**
+- `-s multiagent` でセッションを指定
+- `--pane-name ashigaru{N}` でターゲットペインを指定
+- メッセージの末尾に `\n` を含めてEnterキーを送信
 
 ### ⚠️ 将軍への send-keys は禁止
 

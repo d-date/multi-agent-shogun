@@ -1,21 +1,21 @@
 # multi-agent-shogun システム構成
 
-> **Version**: 1.0.0
-> **Last Updated**: 2026-01-27
+> **Version**: 1.1.0
+> **Last Updated**: 2026-01-29
 
 ## 概要
-multi-agent-shogunは、Claude Code + tmux を使ったマルチエージェント並列開発基盤である。
+multi-agent-shogunは、Claude Code + Zellij を使ったマルチエージェント並列開発基盤である。
 戦国時代の軍制をモチーフとした階層構造で、複数のプロジェクトを並行管理できる。
 
 ## コンパクション復帰時（全エージェント必須）
 
 コンパクション後は作業前に必ず以下を実行せよ：
 
-1. **自分のpane名を確認**: `tmux display-message -p '#W'`
+1. **自分のpane名を確認**: Zellijのペイン名はレイアウトで定義済み（shogun, karo, ashigaru1-8）
 2. **対応する instructions を読む**:
    - shogun → instructions/shogun.md
-   - karo (multiagent:0.0) → instructions/karo.md
-   - ashigaru (multiagent:0.1-8) → instructions/ashigaru.md
+   - karo → instructions/karo.md
+   - ashigaru1-8 → instructions/ashigaru.md
 3. **禁止事項を確認してから作業開始**
 
 summaryの「次のステップ」を見てすぐ作業してはならぬ。まず自分が誰かを確認せよ。
@@ -45,14 +45,14 @@ summaryの「次のステップ」を見てすぐ作業してはならぬ。ま�
 
 ## 通信プロトコル
 
-### イベント駆動通信（YAML + send-keys）
+### イベント駆動通信（YAML + Zellij action）
 - ポーリング禁止（API代金節約のため）
 - 指示・報告内容はYAMLファイルに書く
-- 通知は tmux send-keys で相手を起こす（必ず Enter を使用、C-m 禁止）
+- 通知は `zellij action write-chars` で相手を起こす（メッセージ末尾に `\n` を含める）
 
 ### 報告の流れ（割り込み防止設計）
 - **下→上への報告**: dashboard.md 更新のみ（send-keys 禁止）
-- **上→下への指示**: YAML + send-keys で起こす
+- **上→下への指示**: YAML + Zellij action で起こす
 - 理由: 殿（人間）の入力中に割り込みが発生するのを防ぐ
 
 ### ファイル構成
@@ -68,14 +68,20 @@ dashboard.md                      # 人間用ダッシュボード
 **注意**: 各足軽には専用のタスクファイル（queue/tasks/ashigaru1.yaml 等）がある。
 これにより、足軽が他の足軽のタスクを誤って実行することを防ぐ。
 
-## tmuxセッション構成
+## Zellijセッション構成
 
 ### shogunセッション（1ペイン）
-- Pane 0: SHOGUN（将軍）
+- Pane: shogun（将軍）
 
 ### multiagentセッション（9ペイン）
-- Pane 0: karo（家老）
-- Pane 1-8: ashigaru1-8（足軽）
+- Pane: karo（家老）
+- Pane: ashigaru1-8（足軽）
+
+### セッション接続コマンド
+```bash
+zellij attach shogun       # 将軍セッションに接続
+zellij attach multiagent   # 家老・足軽セッションに接続
+```
 
 ## 言語設定
 
@@ -150,8 +156,8 @@ MCPツールは遅延ロード方式。使用前に必ず `ToolSearch` で検索
 - 家老からの報告待ちの際はこれを確認
 
 ### 4. 家老の状態確認
-- 指示前に家老が処理中か確認: `tmux capture-pane -t multiagent:0.0 -p | tail -20`
-- "thinking", "Effecting…" 等が表示中なら待機
+- 指示前に家老が処理中か確認: YAMLステータスファイルを確認
+- dashboard.md の最終更新時刻で判断
 
 ### 5. スクリーンショットの場所
 - 殿のスクリーンショット: `{{SCREENSHOT_PATH}}`

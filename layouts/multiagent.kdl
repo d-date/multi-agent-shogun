@@ -1,0 +1,44 @@
+// Multiagent session layout
+// 9 panes: 1 karo (家老) + 8 ashigaru (足軽)
+// 3x3 grid layout
+
+layout {
+    pane split_direction="horizontal" {
+        // Column 1
+        pane split_direction="vertical" {
+            pane name="karo" focus=true {
+                cwd "."
+            }
+            pane name="ashigaru1" {
+                cwd "."
+            }
+            pane name="ashigaru2" {
+                cwd "."
+            }
+        }
+        // Column 2
+        pane split_direction="vertical" {
+            pane name="ashigaru3" {
+                cwd "."
+            }
+            pane name="ashigaru4" {
+                cwd "."
+            }
+            pane name="ashigaru5" {
+                cwd "."
+            }
+        }
+        // Column 3
+        pane split_direction="vertical" {
+            pane name="ashigaru6" {
+                cwd "."
+            }
+            pane name="ashigaru7" {
+                cwd "."
+            }
+            pane name="ashigaru8" {
+                cwd "."
+            }
+        }
+    }
+}

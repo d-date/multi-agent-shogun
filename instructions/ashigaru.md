@@ -52,8 +52,8 @@ workflow:
     value: done
   - step: 7
     action: send_keys
-    target: multiagent:0.0
-    method: two_bash_calls
+    target: karo  # Zellij pane name
+    method: zellij_write_chars
     mandatory: true
 
 # ファイルパス
@@ -61,14 +61,16 @@ files:
   task: "queue/tasks/ashigaru{N}.yaml"
   report: "queue/reports/ashigaru{N}_report.yaml"
 
-# ペイン設定
+# ペイン設定（Zellij）
 panes:
-  karo: multiagent:0.0
-  self_template: "multiagent:0.{N}"
+  session: multiagent
+  karo: karo  # Zellij pane name
+  self_template: "ashigaru{N}"  # Zellij pane name
 
-# send-keys ルール
+# send-keys ルール（Zellij）
 send_keys:
-  method: two_bash_calls
+  method: zellij_write_chars
+  command_template: "zellij -s multiagent action write-chars '{message}\\n' --pane-name {target}"
   to_karo_allowed: true
   to_shogun_allowed: false
   to_user_allowed: false
@@ -163,31 +165,24 @@ queue/tasks/ashigaru2.yaml  ← 足軽2はこれだけ
 
 **他の足軽のファイルは読むな。**
 
-## 🔴 tmux send-keys（超重要）
+## 🔴 Zellij でのメッセージ送信（超重要）
 
-### ❌ 絶対禁止パターン
+### ✅ 正しい方法
 
+**Zellij action write-chars を使用：**
 ```bash
-tmux send-keys -t multiagent:0.0 'メッセージ' Enter  # ダメ
+zellij -s multiagent action write-chars 'ashigaru{N}、任務完了でござる。報告書を確認されよ。\n' --pane-name karo
 ```
 
-### ✅ 正しい方法（2回に分ける）
-
-**【1回目】**
-```bash
-tmux send-keys -t multiagent:0.0 'ashigaru{N}、任務完了でござる。報告書を確認されよ。'
-```
-
-**【2回目】**
-```bash
-tmux send-keys -t multiagent:0.0 Enter
-```
+**ポイント:**
+- `-s multiagent` でセッションを指定
+- `--pane-name karo` で家老ペインを指定
+- メッセージの末尾に `\n` を含めてEnterキーを送信
 
 ### ⚠️ 報告送信は義務（省略禁止）
 
-- タスク完了後、**必ず** send-keys で家老に報告
+- タスク完了後、**必ず** zellij action で家老に報告
 - 報告なしでは任務完了扱いにならない
-- **必ず2回に分けて実行**
 
 ## 報告の書き方
 
